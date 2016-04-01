@@ -169,13 +169,11 @@ def emit_go_compile_action(ctx, sources, deps, out_lib):
 
   cmds = symlink_tree_commands(out_dir, tree_layout)
   args = [
-      "cd ", out_dir, "&&",
-      ('../' * out_depth) + ctx.file.go_tool.path,
-      "tool", "compile",
-      "-o", ('../' * out_depth) + out_lib.path, "-pack",
-
-      # Import path.
-      "-I", "."] + [
+      ctx.file._go_compile.path,
+      "-o", out_lib.path,
+      "-go-tool", ctx.file.go_tool.path,
+      "-src-dir", out_dir,
+      ] + [
         "-importmap=%s=%s" % (k,v) for k, v in import_map.items()
       ]
 
@@ -185,7 +183,7 @@ def emit_go_compile_action(ctx, sources, deps, out_lib):
     ' '.join(args + cmd_helper.template(sources, prefix + "%{path}"))]
 
   ctx.action(
-      inputs = inputs + ctx.files.toolchain,
+      inputs = inputs + ctx.files._go_compile + ctx.files.toolchain,
       outputs = [out_lib],
       mnemonic = "GoCompile",
       command =  " && ".join(cmds),
@@ -339,6 +337,13 @@ go_library_attrs = {
             relative_to_caller_repository = True,
         ),
         allow_files = False,
+        cfg = HOST_CFG,
+    ),
+
+    "_go_compile": attr.label(
+        default = Label("//go/tools/go_compile"),
+        single_file = True,
+        allow_files = True,
         cfg = HOST_CFG,
     ),
 }
