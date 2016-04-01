@@ -339,6 +339,7 @@ go_library_attrs = {
         allow_files = False,
         cfg = HOST_CFG,
     ),
+    "cgo": attr.bool(default = True),
 
     "_go_compile": attr.label(
         default = Label("//go/tools/go_compile"),

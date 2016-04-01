@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	cgo        = flag.Bool("cgo", false, "enable cgo")
 	goTool     = flag.String("go-tool", "go", `path to go tool command`)
 	outlib     = flag.String("o", "", "output path")
 	srcDir     = flag.String("src-dir", ".", "path to the source tree")
