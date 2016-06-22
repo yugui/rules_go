@@ -946,6 +946,81 @@ def cgo_library(name, srcs,
       **kwargs
   )
 
+################
+
+def _repository_go_tool(ctx):
+  os = ctx.os.name
+  cpu = ctx.execute(["uname", "-m"]).stdout.strip("\r\n")
+  if os == "mac os x" and cpu == "x86_64":
+    return ctx.path(Label("@golang_darwin_amd64//:go/bin/go"))
+  elif os == "linux" and cpu == "x86_64" :
+    return ctx.path(Label("@golang_linux_amd64//:go/bin/go"))
+  else:
+    fail("unsupported operating system %s (%s)" % (os, cpu))
+
+def _go_vendor_impl(ctx):
+  go_tool = _repository_go_tool(ctx)
+
+go_vendor = repository_rule(
+    _go_vendor_impl,
+    attrs = {
+        "remote": attr.string(mandatory = True),
+        "commit": attr.string(),
+        "tag": attr.string(),
+        "scm": attr.string(
+            values = ["git", "hg", "svn", "bzr"],
+        ),
+    },
+)
+
+GAZEL_BUILDFILIE = """
+package(default_visibility = ["//visibility:public"])
+filegroup(
+  name = "gazel",
+  srcs = ["bin/gazel"],
+)
+"""
+
+def _go_repository_rule_tools_impl(ctx):
+  go_tool = _repository_go_tool(ctx)
+  tool_builder = ctx.path(ctx.attr._tool_builder)
+  gazel_dir = "%s/gazel" % tool_builder.dirname
+  ctx.execute([
+      "mkdir", "-p",
+      ctx.path("src/buildifier"),
+      ctx.path("bin"),
+  ])
+  ctx.download_and_extract(
+      "https://github.com/bazelbuild/buildifier/archive/master.zip",
+      "src/buildifier",
+      "buildifier-master",
+  )
+  result = ctx.execute([
+      "env",
+      "GOROOT=%s" % go_tool.dirname.dirname,
+      tool_builder,
+      go_tool,
+      gazel_dir,
+      ctx.path("src/buildifier"),
+      ctx.path("bin/gazel"),
+  ])
+  if result.return_code:
+    fail("Failed to build gazel: %s: %s" % (result.stderr, result.stdout))
+
+  ctx.file("BUILD", GAZEL_BUILDFILIE, False)
+
+_go_repository_rule_tools = repository_rule(
+    _go_repository_rule_tools_impl,
+    attrs = {
+        "_tool_builder": attr.label(
+            default = Label("//go/tools:build_repository_tools.sh"),
+            single_file = True,
+            allow_files = True,
+            cfg = HOST_CFG,
+        ),
+    },
+)
+
 GO_TOOLCHAIN_BUILD_FILE = """
 package(
   default_visibility = [ "//visibility:public" ])
@@ -980,3 +1055,5 @@ def go_repositories():
     build_file_content = GO_TOOLCHAIN_BUILD_FILE,
     sha256 = "6ebbafcac53bbbf8c4105fa84b63cca3d6ce04370f5a04ac2ac065782397fc26"
   )
+
+  _go_repository_rule_tools(name = "golang_repository_rule_tools")

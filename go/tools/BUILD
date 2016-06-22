@@ -7,3 +7,8 @@ go_binary(
     name = "generate_test_main",
     srcs = ["generate_test_main.go"],
 )
+
+alias(
+    name = "gazel",
+    actual = "@golang_repository_rule_tools//:bin/gazel",
+)
