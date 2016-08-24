@@ -960,6 +960,46 @@ def cgo_library(name, srcs,
       **kwargs
   )
 
+################
+
+def _go_vendor_impl(ctx):
+  fetch_repo = ctx.path(ctx.attr._fetch_repo)
+  gazelle = ctx.path(ctx.attr._gazelle)
+
+  result = ctx.execute([
+      fetch_repo,
+      '--dest', ctx.path(''),
+      '--remote', ctx.attr.importpath,
+      '--rev', ctx.attr.revision])
+  if result.return_code:
+    fail("failed to fetch %s: %s" % (ctx.attr.importpath, result.stderr))
+
+  result = ctx.execute([
+      gazelle,
+      '--go_prefix', ctx.attr.importpath, '--mode', 'fix',
+      ctx.path('')])
+  if result.return_code:
+    fail("failed to generate BUILD files for %s: %s" % (
+        ctx.attr.importpath, result.stderr))
+
+go_vendor = repository_rule(
+    _go_vendor_impl,
+    attrs = {
+        "importpath": attr.string(mandatory = True),
+        "revision": attr.string(mandatory = True),
+
+        "_fetch_repo": attr.label(
+            default = Label("@io_bazel_rules_go_repository_tools//:bin/fetch_repo"),
+            allow_files = True,
+            single_file = True,
+        ),
+        "_gazelle": attr.label(
+            default = Label("@io_bazel_rules_go_repository_tools//:bin/gazelle"),
+            allow_files = True,
+            single_file = True,
+        ),
+    },
+)
 
 ################
 
