@@ -14,52 +14,25 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
+
+	"golang.org/x/tools/go/vcs"
 )
 
 var (
 	remote = flag.String("remote", "", "Go importpath to the repository fetch")
-	vcsCmd = flag.String("vcs", "", "vcs")
 	rev    = flag.String("rev", "", "target revision")
 	dest   = flag.String("dest", "", "destination directory")
 )
 
-func create(dir string) error {
-	repo, err := fromCmd(*vcsCmd, *remote, dir)
-	if err != nil {
-		return err
-	}
-	if err := repo.Get(); err != nil {
-		return err
-	}
-	return repo.UpdateVersion(*rev)
-}
-
-func update(dir string) error {
-	repo, err := fromDir(dir)
-	if err != nil {
-		return err
-	}
-	return repo.UpdateVersion(*rev)
-}
-
 func run() error {
-	dir, err := filepath.Abs(*dest)
+	r, err := vcs.RepoRootForImportPath(*remote, true)
 	if err != nil {
 		return err
 	}
-	info, err := os.Stat(dir)
-	if os.IsNotExist(err) {
-		return create(dir)
+	if *remote != r.Root {
+		return fmt.Errorf("not a root of a repository: %s", *remote)
 	}
-	if err != nil {
-		return err
-	}
-	if !info.IsDir() {
-		return fmt.Errorf("not a directory: %s", dir)
-	}
-	return update(dir)
+	return r.VCS.CreateAtRev(*dest, r.Repo, *rev)
 }
 
 func main() {

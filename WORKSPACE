@@ -54,27 +54,6 @@ new_git_repository(
     remote = "https://go.googlesource.com/tools",
 )
 
-VCS_BUILD = """
-load("@//go:def.bzl", "go_prefix", "go_library")
-
-go_prefix("github.com/Masterminds/vcs")
-
-go_library(
-    name = "go_default_library",
-    srcs = glob(
-        include = ["*.go"],
-        exclude = ["*_test.go"],
-    )
-)
-"""
-
-new_git_repository(
-    name = "com_github_masterminds_vcs",
-    build_file_content = VCS_BUILD,
-    remote = "https://github.com/Masterminds/vcs.git",
-    tag = "1.7.0",
-)
-
 local_repository(
     name = "io_bazel_rules_go",
     path = ".",
