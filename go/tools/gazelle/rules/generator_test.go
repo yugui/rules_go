@@ -65,6 +65,7 @@ func TestGenerator(t *testing.T) {
 						"doc.go",
 						"lib.go",
 					],
+					visibility = ["//visibility:public"],
 					deps = ["//lib/deep:go_default_library"],
 				)
 
@@ -87,6 +88,7 @@ func TestGenerator(t *testing.T) {
 				go_binary(
 					name = "bin",
 					srcs = ["main.go"],
+					visibility = ["//visibility:public"],
 					deps = ["//lib:go_default_library"],
 				)
 			`,
@@ -112,6 +114,7 @@ func TestGeneratorGoPrefix(t *testing.T) {
 		go_library(
 			name = "go_default_library",
 			srcs = ["thought.go"],
+			visibility = ["//visibility:public"],
 		)
 	`
 	pkg := packageFromDir(t, filepath.FromSlash("lib/deep"))
